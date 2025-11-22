@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>القرآن الكريم — قراءة واستماع</title>
+<style>
+  body { font-family: 'Arial', sans-serif; background: #f5f5f5; margin:0; padding:0; direction: rtl; }
+  header { background:#4CAF50; color:white; text-align:center; padding:16px; font-size:24px; }
+  .container { padding:16px; }
+  select, input { width:100%; padding:10px; margin-bottom:12px; font-size:16px; border-radius:10px; border:1px solid #ccc; }
+  .tabs { display:flex; margin-bottom:16px; }
+  .tab { flex:1; text-align:center; padding:10px; cursor:pointer; background:#ddd; border-radius:10px 10px 0 0; }
+  .tab.active { background:#4CAF50; color:white; }
+  .section { display:none; background:white; border-radius:0 0 10px 10px; padding:10px; box-shadow:0 2px 5px rgba(0,0,0,0.2); }
+  .section.active { display:block; }
+  .surah-card { display:flex; justify-content:space-between; align-items:center; padding:8px; margin-bottom:8px; background:#fafafa; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+  .surah-title { font-weight:bold; }
+  audio { width:200px; }
+</style>
+</head>
+<body>
+
+<header>القرآن الكريم — قراءة واستماع</header>
+<div class="container">
+
+  <!-- اختيار القارئ -->
+  <select id="reciter">
+    <option value="abdulbasit">عبد الباسط عبد الصمد</option>
+    <option value="minshawi">محمد صديق المنشاوي</option>
+    <option value="alafasy">مشاري العفاسي</option>
+    <option value="husary">الحصري</option>
+    <option value="maher">ماهر المعيقلي</option>
+    <option value="sudais">السديس</option>
+    <option value="shuraym">الشيخ الشريم</option>
+    <option value="ajmi">أحمد العجمي</option>
+    <option value="rifai">ياسر الدوسري</option>
+    <option value="jibreel">عبد الرحمن الجبرين</option>
+  </select>
+
+  <!-- شريط البحث -->
+  <input id="search" type="text" placeholder="ابحث عن سورة..." />
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" data-target="read">قراءة</div>
+    <div class="tab" data-target="listen">استماع</div>
+  </div>
+
+  <!-- قسم القراءة -->
+  <div id="read" class="section active"></div>
+
+  <!-- قسم الاستماع -->
+  <div id="listen" class="section"></div>
+</div>
+
+<script>
+const surahNames = [
+  "الفاتحة","البقرة","آل عمران","النساء","المائدة","الأنعام","الأعراف","الأنفال",
+  "التوبة","يونس","هود","يوسف","الرعد","إبراهيم","الحجر","النحل","الإسراء","الكهف",
+  "مريم","طه","الأنبياء","الحج","المؤمنون","النور","الفرقان","الشعراء","النمل",
+  "القصص","العنكبوت","الروم","لقمان","السجدة","الأحزاب","سبأ","فاطر","يس","الصافات",
+  "ص","الزمر","غافر","فصلت","الشورى","الزخرف","الدخان","الجاثية","الأحقاف","محمد",
+  "الفتح","الحجرات","ق","الذاريات","الطور","النجم","القمر","الرحمن","الواقعة",
+  "الحديد","المجادلة","الحشر","الممتحنة","الصف","الجمعة","المنافقون","التغابن",
+  "الطلاق","التحريم","الملك","القلم","الحاقة","المعارج","نوح","الجن","المزمل",
+  "المدثر","القيامة","الإنسان","المرسلات","النبأ","النازعات","عبس","التكوير",
+  "الإنفطار","المطففين","الإنشقاق","البروج","الطارق","الأعلى","الغاشية","الفجر",
+  "البلد","الشمس","الليل","الضحى","الشرح","التين","العلق","القدر","البينة","الزلزلة",
+  "العاديات","القارعة","التكاثر","العصر","الهمزة","الفيل","قريش","الماعون",
+  "الكوثر","الكافرون","النصر","المسد","الإخلاص","الفلق","الناس"
+];
+
+const reciters = {
+  abdulbasit:"https://everyayah.com/data/Abdul_Basit_Murattal_64kbps/",
+  minshawi:"https://everyayah.com/data/Al_Minshawi_128kbps/",
+  alafasy:"https://everyayah.com/data/Alafasy_64kbps/",
+  husary:"https://everyayah.com/data/Husary_128kbps/",
+  maher:"https://everyayah.com/data/Maher_AlMuaiqly_64kbps/",
+  sudais:"https://everyayah.com/data/Abdurrahmaan_As-Sudais_192kbps/",
+  shuraym:"https://everyayah.com/data/Saud_Al-Shuraim_128kbps/",
+  ajmi:"https://everyayah.com/data/Ahmed_Ajmi_64kbps/",
+  rifai:"https://everyayah.com/data/Yasser_Ad-Dosari_192kbps/",
+  jibreel:"https://everyayah.com/data/Jibreel_128kbps/"
+};
+
+const readDiv = document.getElementById("read");
+const listenDiv = document.getElementById("listen");
+const reciterSelect = document.getElementById("reciter");
+const searchBar = document.getElementById("search");
+const tabs = document.querySelectorAll(".tab");
+
+function renderSections(query="") {
+  readDiv.innerHTML = "";
+  listenDiv.innerHTML = "";
+  const reciter = reciterSelect.value;
+
+  surahNames.forEach((name, index) => {
+    if(name.includes(query)){
+      const number = index+1;
+
+      // قراءة
+      const readCard = document.createElement("div");
+      readCard.className = "surah-card";
+      const readTitle = document.createElement("span");
+      readTitle.className = "surah-title";
+      readTitle.innerText = `${number}. ${name}`;
+      readCard.appendChild(readTitle);
+      readDiv.appendChild(readCard);
+
+      // استماع
+      const listenCard = document.createElement("div");
+      listenCard.className = "surah-card";
+      const listenTitle = document.createElement("span");
+      listenTitle.className = "surah-title";
+      listenTitle.innerText = `${number}. ${name}`;
+      const audio = document.createElement("audio");
+      audio.controls = true;
+      audio.src = reciters[reciter] + String(number).padStart(3,'0') + ".mp3";
+      listenCard.appendChild(listenTitle);
+      listenCard.appendChild(audio);
+      listenDiv.appendChild(listenCard);
+    }
+  });
+}
+
+reciterSelect.addEventListener("change", ()=>renderSections(searchBar.value));
+searchBar.addEventListener("input", ()=>renderSections(searchBar.value));
+
+tabs.forEach(tab=>{
+  tab.addEventListener("click", ()=>{
+    tabs.forEach(t=>t.classList.remove("active"));
+    tab.classList.add("active");
+    document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+    document.getElementById(tab.dataset.target).classList.add("active");
+  });
+});
+
+window.onload = ()=>renderSections();
+</script>
+
+</body>
+</html>
