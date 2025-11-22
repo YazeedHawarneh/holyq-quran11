@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>القرآن الكريم — استماع</title>
+  <title>القرآن الكريم — استماع وقراءة</title>
   <style>
     body { font-family: Arial, sans-serif; direction: rtl; background: #f2f2f2; margin:0; padding:0; }
     header { background: #4CAF50; color: white; text-align: center; padding: 16px; font-size: 24px; }
@@ -12,25 +12,42 @@
     .surah-card { background: white; padding: 12px; margin-bottom: 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center; }
     .surah-title { font-weight: bold; }
     audio { width: 200px; }
+    .section-header { font-size: 20px; margin: 16px 0 8px; font-weight: bold; }
   </style>
 </head>
 <body>
-  <header>القرآن الكريم — استماع</header>
+  <header>القرآن الكريم — استماع وقراءة</header>
   <div class="container">
-    <label>اختر القارئ:</label>
+
+    <div class="section-header">اختر القارئ:</div>
     <select id="reciter"></select>
 
+    <div class="section-header">ابحث عن سورة:</div>
     <input type="text" id="search" placeholder="ابحث عن سورة..." />
+
     <div id="surah-list"></div>
   </div>
 
   <script>
-    const baseUrl = "https://download.quranicaudio.com/quran/";
+    // أشهر 10 قراء من Quranicaudio مع روابط ثابتة
+    const reciters = {
+      "عبد الباسط عبد الصمد": "https://download.quranicaudio.com/quran/abdulbasit_murattal/128kbps/",
+      "محمد صديق المنشاوي": "https://download.quranicaudio.com/quran/minshawi_murattal/128kbps/",
+      "مشاري العفاسي": "https://download.quranicaudio.com/quran/mishary_alafasy/128kbps/",
+      "الحصري": "https://download.quranicaudio.com/quran/alhusary_murattal/128kbps/",
+      "ماهر المعيقلي": "https://download.quranicaudio.com/quran/maher_almuaiqly/128kbps/",
+      "السديس": "https://download.quranicaudio.com/quran/abdulrahman_as_sudais/128kbps/",
+      "الشيخ الشريم": "https://download.quranicaudio.com/quran/abdulrahman_alshuraim/128kbps/",
+      "أحمد العجمي": "https://download.quranicaudio.com/quran/ahmed_alajmi/128kbps/",
+      "ياسر الدوسري": "https://download.quranicaudio.com/quran/yasser_addosari/128kbps/",
+      "عبد الرحمن الجبرين": "https://download.quranicaudio.com/quran/abdurrahman_aljibreel/128kbps/"
+    };
+
     const surahNames = [
       "الفاتحة","البقرة","آل عمران","النساء","المائدة","الأنعام","الأعراف","الأنفال",
       "التوبة","يونس","هود","يوسف","الرعد","إبراهيم","الحجر","النحل","الإسراء","الكهف",
       "مريم","طه","الأنبياء","الحج","المؤمنون","النور","الفرقان","الشعراء","النمل",
-      "القصص","الأنكبوت","الروم","لقمان","السجدة","الأحزاب","سبأ","فاطر","يس","الصافات",
+      "الالقصص","العنكبوت","الروم","لقمان","السجدة","الأحزاب","سبأ","فاطر","يس","الصافات",
       "ص","الزمر","غافر","فصلت","الشورى","الزخرف","الدخان","الجاثية","الأحقاف","محمد",
       "الفتح","الحجرات","ق","الذاريات","الطور","النجم","القمر","الرحمن","الواقعة","الحديد",
       "المجادلة","الحشر","الممتحنة","الصف","الجمعة","المنافقون","التغابن","الطلاق","التحريم",
@@ -41,36 +58,27 @@
       "الماعون","الكوثر","الكافرون","النصر","المسد","الإخلاص","الفلق","الناس"
     ];
 
-    async function fetchReciters() {
-      const res = await fetch("https://quranicaudio.com/api/qaris");
-      const data = await res.json();
-      return data; // قائمة القُرّاء مع relative_path
-    }
+    // تهيئة القائمة
+    const reciterSelect = document.getElementById("reciter");
+    Object.keys(reciters).forEach(r => {
+      const opt = document.createElement("option");
+      opt.value = r;
+      opt.text = r;
+      reciterSelect.appendChild(opt);
+    });
 
-    async function init() {
-      const reciters = await fetchReciters();
-      const reciterSelect = document.getElementById("reciter");
-      reciters.forEach(r => {
-        const opt = document.createElement("option");
-        opt.value = r.relative_path;
-        opt.text = r.arabic_name ?? r.name;
-        reciterSelect.appendChild(opt);
-      });
-
-      reciterSelect.onchange = renderSurahs;
-      document.getElementById("search").oninput = renderSurahs;
-      renderSurahs();
-    }
+    reciterSelect.onchange = renderSurahs;
+    document.getElementById("search").oninput = renderSurahs;
 
     function renderSurahs() {
       const list = document.getElementById("surah-list");
       list.innerHTML = "";
-      const rel = document.getElementById("reciter").value;
+      const selectedReciter = reciterSelect.value;
       const query = document.getElementById("search").value;
 
       surahNames.forEach((name, i) => {
-        if (name.includes(query)) {
-          const surahNum = (i + 1).toString().padStart(3, "0");
+        if(name.includes(query)) {
+          const surahNum = String(i+1).padStart(3,"0");
           const div = document.createElement("div");
           div.className = "surah-card";
 
@@ -80,7 +88,7 @@
 
           const audio = document.createElement("audio");
           audio.controls = true;
-          audio.src = `${baseUrl}${rel}${surahNum}.mp3`;
+          audio.src = `${reciters[selectedReciter]}${surahNum}.mp3`;
 
           div.appendChild(title);
           div.appendChild(audio);
@@ -89,7 +97,8 @@
       });
     }
 
-    init();
+    // عرض عند التحميل
+    renderSurahs();
   </script>
 </body>
 </html>
